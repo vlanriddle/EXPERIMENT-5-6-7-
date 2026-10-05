@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: social-posts-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: social_media
+      POSTGRES_USER: social_app
+      POSTGRES_PASSWORD: social_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - social-posts-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U social_app -d social_media"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  social-posts-data:

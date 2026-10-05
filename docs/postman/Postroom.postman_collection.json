@@ -1,0 +1,99 @@
+{
+  "info": {
+    "name": "Postroom Social Publishing API",
+    "description": "Authentication, post management, scheduling, pagination, and RBAC checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "postId", "value": "" },
+    { "key": "scheduledAt", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/actuator/health" }
+    },
+    {
+      "name": "Register",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('account created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('accessToken', pm.response.json().data.accessToken);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"alex@example.com\",\n  \"displayName\": \"Alex Rivera\",\n  \"password\": \"correct-horse-battery-42\"\n}" },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Login",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('signed in', () => pm.response.to.have.status(200));", "pm.collectionVariables.set('accessToken', pm.response.json().data.accessToken);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"email\": \"alex@example.com\",\n  \"password\": \"correct-horse-battery-42\"\n}" },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "Create published post",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('post created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('postId', pm.response.json().data.id);"] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"content\": \"A thought worth sharing.\",\n  \"status\": \"PUBLISHED\"\n}" },
+        "url": "{{baseUrl}}/api/posts"
+      }
+    },
+    {
+      "name": "List posts (paged)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+        "url": "{{baseUrl}}/api/posts?page=0&size=10&sortBy=createdAt&sortDir=desc"
+      }
+    },
+    {
+      "name": "Create scheduled post",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('scheduledAt', new Date(Date.now() + 3600000).toISOString());"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('scheduled post created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('postId', pm.response.json().data.id);"] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"content\": \"A scheduled post.\",\n  \"status\": \"SCHEDULED\",\n  \"scheduledAt\": \"{{scheduledAt}}\"\n}" },
+        "url": "{{baseUrl}}/api/posts"
+      }
+    },
+    {
+      "name": "Trending feed",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/posts/trending?limit=10" }
+    },
+    {
+      "name": "Update post",
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"content\": \"Revised post copy.\",\n  \"status\": \"DRAFT\"\n}" },
+        "url": "{{baseUrl}}/api/posts/{{postId}}"
+      }
+    },
+    {
+      "name": "Admin overview (requires ROLE_ADMIN)",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/admin/overview" }
+    },
+    {
+      "name": "Delete post",
+      "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/api/posts/{{postId}}" }
+    },
+    {
+      "name": "Refresh session",
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/auth/refresh" }
+    },
+    {
+      "name": "Logout",
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" }, "url": "{{baseUrl}}/api/auth/logout" }
+    }
+  ]
+}
